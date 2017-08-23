@@ -1,0 +1,16 @@
+language: python
+python:
+  - "3.2"
+  - "3.3"
+  - "3.4"
+  - "3.5"
+  - "3.6"
+install:
+  - pip install -r requirements.txt
+
+script:
+  - python3 create_bootanimation.py $PWD/example/example.gif 720 1280 24 $PWD/result -zip
+  - ls -lR
+
+notifications:
+  email: false
