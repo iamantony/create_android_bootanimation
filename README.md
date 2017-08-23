@@ -1,5 +1,7 @@
 # create_android_bootanimation
 
+[![Build Status](https://travis-ci.org/iamantony/create_android_bootanimation.svg?branch=master)](https://travis-ci.org/iamantony/create_android_bootanimation)
+
 Create Android bootanimation from .gif or .png images
 
 ## Usage
