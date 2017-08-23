@@ -32,7 +32,7 @@ and set FPS to 60:
 
 Show help:
 
-    $ python create_bootanimation.py -h
+    $ python3 create_bootanimation.py -h
 
 ## Additional Info
 
