@@ -8,7 +8,7 @@ Create Android bootanimation from .gif or .png images
 
     $python3 create_bootanimation.py SOURCE_FOLDER WIDTH HEIGHT FPS SAVE_TO_FOLDER -ZIP
 
-* PATH_TO_SOURCE_FOLDER - absolute path to the folder with .gif image or .png
+* SOURCE_FOLDER - absolute path to the folder with .gif image or .png
 images. If you specify .gif image, it will be unpacked to .png images.
 * WIDTH - width of the device screen
 * HEIGHT - height of the device screen
