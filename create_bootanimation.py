@@ -1,9 +1,16 @@
 import argparse
+import logging
 import os
 import tempfile
+import time
 import zipfile
+
 from PIL import Image
+
 import gifextract
+
+logging.basicConfig(level=logging.INFO)
+_log = logging.getLogger(__name__)
 
 
 def parse_arguments():
@@ -43,52 +50,58 @@ def parse_arguments():
 def check_args(t_source, t_width, t_height, t_fps, t_save_to, t_zip):
     result = True
     if len(t_source) <= 0:
-        print("Error: source path is empty")
+        _log.error("source path is empty")
         result = False
 
     if os.path.exists(t_source) is False:
-        print("Error: path '{}' do not exist".format(t_source))
+        _log.error("path '{}' do not exist".format(t_source))
         result = False
 
     if t_width <= 0:
-        print("Error: width is too small: " + str(t_width))
+        _log.error("width is too small: " + str(t_width))
         result = False
 
     if t_height <= 0:
-        print("Error: height is too small: " + str(t_height))
+        _log.error("height is too small: " + str(t_height))
         result = False
 
     if t_fps <= 0:
-        print("Error: fps is too small: " + str(t_fps))
+        _log.error("fps is too small: " + str(t_fps))
         result = False
 
     if t_fps <= 0:
-        print("Error: fps is too small: " + str(t_fps))
+        _log.error("fps is too small: " + str(t_fps))
         result = False
 
     if len(t_save_to) <= 0:
-        print("Error: save_to path is empty")
+        _log.error("save_to path is empty")
         result = False
 
     return result
 
 
 def main(t_source, t_width, t_height, t_fps, t_save_to, t_zip):
+    start = time.time()
+
+    _log.info('start creating bootimage')
+
     source_dir = ""
     temp_dir = None
     if os.path.isdir(t_source):
         source_dir = t_source
     elif os.path.isfile(t_source) and get_extension(t_source) == "gif":
         temp_dir = tempfile.TemporaryDirectory()
+        _log.info(f'extracting {t_source} to {temp_dir.name}')
         gifextract.processImage(t_source, temp_dir.name)
         source_dir = temp_dir.name
+        _log.debug(f'gif extracted to {source_dir}')
     else:
-        print("Error: invalid source path: " + t_source)
+        _log.error("invalid source path: " + t_source)
         return
 
     images = get_images_paths(source_dir)
     if len(images) <= 0:
-        print("Error: no images to process")
+        _log.error("no images to process")
         return
 
     if not os.path.exists(t_save_to):
@@ -100,9 +113,9 @@ def main(t_source, t_width, t_height, t_fps, t_save_to, t_zip):
     if not os.path.exists(dir_for_images):
         os.makedirs(dir_for_images)
 
-    count = 0
-    for img in images:
-        count = transform_images(img, count, t_width, t_height, dir_for_images)
+    _log.info(f'{len(images)} images are ready to process')
+    for idx, img in enumerate(images):
+        transform_images(img, idx, t_width, t_height, dir_for_images)
 
     with open(path_to_desc_file, "a") as f:
         print("p 1 0 part0", file=f)
@@ -117,7 +130,8 @@ def main(t_source, t_width, t_height, t_fps, t_save_to, t_zip):
         zip_dir(dir_for_images, zip_file)
         zip_file.close()
 
-    print("Done")
+    end = time.time()
+    _log.info(f'done in {end - start} seconds')
 
 
 def get_extension(t_path):
@@ -165,6 +179,8 @@ def crop_image(image, steps=100):
     # Get background color
     background_color = image_pixels[0, 0]
 
+    _log.debug(f'using background color {background_color}')
+
     # Get image crop coords
     crop_start_x = image.width
     crop_start_y = image.height
@@ -187,7 +203,7 @@ def crop_image(image, steps=100):
     crop_start_y = max(crop_start_y - int(image.height / steps), 0)
     crop_end_x = min(crop_end_x + int(image.width / steps), image.width - 1)
     crop_end_y = min(crop_end_y + int(image.height / steps), image.height - 1)
-
+             
     # Get only 1 pixel if start > end
     if crop_start_x > crop_end_x:
         crop_start_x = 0
@@ -196,11 +212,14 @@ def crop_image(image, steps=100):
         crop_start_y = 0
         crop_end_y = 1
 
+    _log.debug(f'crop coords: ({crop_start_x},{crop_start_y}) - '
+               f'({crop_end_x}, {crop_end_y})')
+
     # Crop image
     cropped_image = image.crop((crop_start_x, crop_start_y,
                                 crop_end_x, crop_end_y))
 
-    print(f'trim: {cropped_image.width}x{cropped_image.height}+{crop_start_x}+{crop_start_y}')
+    _log.debug(f'trim: {cropped_image.width}x{cropped_image.height}+{crop_start_x}+{crop_start_y}')
 
     return {
         'image': cropped_image,
@@ -210,7 +229,7 @@ def crop_image(image, steps=100):
 
 
 def transform_images(t_img_path, t_count, t_width, t_height, t_save_to_path):
-    print(f'Process image {t_count}: {t_img_path}')
+    _log.info(f'processing image {t_count}: {t_img_path}')
 
     original_img = Image.open(t_img_path)
 
@@ -225,8 +244,10 @@ def transform_images(t_img_path, t_count, t_width, t_height, t_save_to_path):
     height_pos = int(t_height / 2 - original_img.height / 2)
     result_image.paste(original_img, (width_pos, height_pos))
 
+    _log.debug(f'size before crop: {result_image.width}x{result_image.height}')
     crop_result = crop_image(result_image)
     result_image = crop_result['image']
+    _log.debug(f'size after crop: {result_image.width}x{result_image.height}')
 
     fd = open(t_save_to_path + '/' + 'trim.txt', mode="a+")
     print(f'{result_image.width}x{result_image.height}'
@@ -235,8 +256,6 @@ def transform_images(t_img_path, t_count, t_width, t_height, t_save_to_path):
     result_img_name = "{0:0{width}}.png".format(t_count, width=5)
     result_img_path = t_save_to_path + "/" + result_img_name
     result_image.save(result_img_path)
-    t_count += 1
-    return t_count
 
 
 def zip_dir(t_path, t_zip_file):
