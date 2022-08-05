@@ -12,11 +12,11 @@ def parse_arguments():
                     "of images")
 
     parser.add_argument("source", type=str, default="",
-        help="Absolute path to the GIF file or folder with images."
-             "Expected image name format: xxxx-001.png"
-             "Where:"
-             "xxx - some image name;"
-             "001 - image number.")
+                        help="Absolute path to the GIF file or folder with images. "
+                        "Expected image name format: xxxx-001.png "
+                        "Where: "
+                        "xxx - some image name; "
+                        "001 - image number.")
 
     parser.add_argument("width", type=int, default=720,
                         help="Width of result images in pixels. "
