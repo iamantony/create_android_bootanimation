@@ -151,7 +151,67 @@ def create_desc_file(t_folder, t_width, t_height, t_fps):
     return file_name
 
 
+def compare_colors(color_a, color_b, tolerance=10):
+    return abs(color_a[0] - color_b[0]) < tolerance and \
+        abs(color_a[1] - color_b[1]) < tolerance and \
+        abs(color_a[2] - color_b[2]) < tolerance
+
+
+def crop_image(image, steps=100):
+    """Crop image"""
+
+    image_pixels = image.load()
+
+    # Get background color
+    background_color = image_pixels[0, 0]
+
+    # Get image crop coords
+    crop_start_x = image.width
+    crop_start_y = image.height
+    crop_end_x = 0
+    crop_end_y = 0
+
+    for x in range(0, image.width - 1, int(image.width / steps)):
+        for y in range(0, image.height - 1, int(image.height / steps)):
+            if not compare_colors(image_pixels[x, y], background_color):
+                if x < crop_start_x:
+                    crop_start_x = x
+                if y < crop_start_y:
+                    crop_start_y = y
+                if x > crop_end_x:
+                    crop_end_x = x
+                if y > crop_end_y:
+                    crop_end_y = y
+
+    crop_start_x = max(crop_start_x - int(image.width / steps), 0)
+    crop_start_y = max(crop_start_y - int(image.height / steps), 0)
+    crop_end_x = min(crop_end_x + int(image.width / steps), image.width - 1)
+    crop_end_y = min(crop_end_y + int(image.height / steps), image.height - 1)
+
+    # Get only 1 pixel if start > end
+    if crop_start_x > crop_end_x:
+        crop_start_x = 0
+        crop_end_x = 1
+    if crop_start_y > crop_end_y:
+        crop_start_y = 0
+        crop_end_y = 1
+
+    # Crop image
+    cropped_image = image.crop((crop_start_x, crop_start_y,
+                                crop_end_x, crop_end_y))
+
+    print(f'trim: {cropped_image.width}x{cropped_image.height}+{crop_start_x}+{crop_start_y}')
+
+    return {
+        'image': cropped_image,
+        'pos_x': crop_start_x,
+        'pos_y': crop_start_y
+    }
+
+
 def transform_images(t_img_path, t_count, t_width, t_height, t_save_to_path):
+    print(f'Process image {t_count}: {t_img_path}')
+
     original_img = Image.open(t_img_path)
 
     # Scale image
@@ -159,11 +219,18 @@ def transform_images(t_img_path, t_count, t_width, t_height, t_save_to_path):
     height_size = int((float(original_img.height) * float(width_percent)))
     original_img = original_img.resize((t_width, height_size), Image.LANCZOS)
 
-    result_image = Image.new("RGB", (t_width, t_height), "white")
+    result_image = Image.new("RGB", (t_width, t_height), original_img.getpixel((0, 0)))
 
     width_pos = 0
     height_pos = int(t_height / 2 - original_img.height / 2)
     result_image.paste(original_img, (width_pos, height_pos))
+
+    crop_result = crop_image(result_image)
+    result_image = crop_result['image']
+
+    fd = open(t_save_to_path + '/' + 'trim.txt', mode="a+")
+    print(f'{result_image.width}x{result_image.height}'
+          f'+{crop_result["pos_x"]}+{crop_result["pos_y"]}', file=fd)
 
     result_img_name = "{0:0{width}}.png".format(t_count, width=5)
     result_img_path = t_save_to_path + "/" + result_img_name
