@@ -40,14 +40,19 @@ def parse_arguments():
                         help="path to the folder where result images should "
                              "be saved")
 
-    parser.add_argument("-zip", action='store_true',
+    parser.add_argument("--zip", action='store_true',
                         help="create bootanimation.zip with result images")
 
+    parser.add_argument("--tolerance", type=int, default=10,
+                        help="set tolerance for detecting background color. "
+                        "For background detection (0, 0) pixel used")
+
     args = parser.parse_args()
-    return args.source, args.width, args.height, args.fps, args.save_to, args.zip
+    return args.source, args.width, args.height, args.fps, \
+        args.save_to, args.zip, args.tolerance
 
 
-def check_args(t_source, t_width, t_height, t_fps, t_save_to, t_zip):
+def check_args(t_source, t_width, t_height, t_fps, t_save_to, t_zip, t_tolerance):
     result = True
     if len(t_source) <= 0:
         _log.error("source path is empty")
@@ -77,10 +82,14 @@ def check_args(t_source, t_width, t_height, t_fps, t_save_to, t_zip):
         _log.error("save_to path is empty")
         result = False
 
+    if t_tolerance <= 0:
+        _log.error(f'background color tolerance is too small: {t_tolerance}')
+        result = False
+
     return result
 
 
-def main(t_source, t_width, t_height, t_fps, t_save_to, t_zip):
+def main(t_source, t_width, t_height, t_fps, t_save_to, t_zip, t_tolerance):
     start = time.time()
 
     _log.info('start creating bootimage')
@@ -115,7 +124,7 @@ def main(t_source, t_width, t_height, t_fps, t_save_to, t_zip):
 
     _log.info(f'{len(images)} images are ready to process')
     for idx, img in enumerate(images):
-        transform_images(img, idx, t_width, t_height, dir_for_images)
+        transform_images(img, idx, t_width, t_height, dir_for_images, t_tolerance)
 
     with open(path_to_desc_file, "a") as f:
         print("p 1 0 part0", file=f)
@@ -171,7 +180,7 @@ def compare_colors(color_a, color_b, tolerance=10):
         abs(color_a[2] - color_b[2]) < tolerance
 
 
-def crop_image(image, steps=100):
+def crop_image(image, tolerance, steps=100):
     """Crop image"""
 
     image_pixels = image.load()
@@ -189,7 +198,7 @@ def crop_image(image, steps=100):
 
     for x in range(0, image.width - 1, int(image.width / steps)):
         for y in range(0, image.height - 1, int(image.height / steps)):
-            if not compare_colors(image_pixels[x, y], background_color):
+            if not compare_colors(image_pixels[x, y], background_color, tolerance):
                 if x < crop_start_x:
                     crop_start_x = x
                 if y < crop_start_y:
@@ -203,7 +212,7 @@ def crop_image(image, steps=100):
     crop_start_y = max(crop_start_y - int(image.height / steps), 0)
     crop_end_x = min(crop_end_x + int(image.width / steps), image.width - 1)
     crop_end_y = min(crop_end_y + int(image.height / steps), image.height - 1)
-             
+
     # Get only 1 pixel if start > end
     if crop_start_x > crop_end_x:
         crop_start_x = 0
@@ -228,7 +237,7 @@ def crop_image(image, steps=100):
     }
 
 
-def transform_images(t_img_path, t_count, t_width, t_height, t_save_to_path):
+def transform_images(t_img_path, t_count, t_width, t_height, t_save_to_path, t_tolerance):
     _log.info(f'processing image {t_count}: {t_img_path}')
 
     original_img = Image.open(t_img_path)
@@ -245,7 +254,7 @@ def transform_images(t_img_path, t_count, t_width, t_height, t_save_to_path):
     result_image.paste(original_img, (width_pos, height_pos))
 
     _log.debug(f'size before crop: {result_image.width}x{result_image.height}')
-    crop_result = crop_image(result_image)
+    crop_result = crop_image(result_image, t_tolerance)
     result_image = crop_result['image']
     _log.debug(f'size after crop: {result_image.width}x{result_image.height}')
 
