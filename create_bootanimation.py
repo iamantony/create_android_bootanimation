@@ -47,12 +47,15 @@ def parse_arguments():
                         help="set tolerance for detecting background color. "
                         "For background detection (0, 0) pixel used")
 
+    parser.add_argument("--colors", type=int, default=256,
+                        help="set colors count for resulted images")
+
     args = parser.parse_args()
     return args.source, args.width, args.height, args.fps, \
-        args.save_to, args.zip, args.tolerance
+        args.save_to, args.zip, args.tolerance, args.colors
 
 
-def check_args(t_source, t_width, t_height, t_fps, t_save_to, t_zip, t_tolerance):
+def check_args(t_source, t_width, t_height, t_fps, t_save_to, t_zip, t_tolerance, t_colors):
     result = True
     if len(t_source) <= 0:
         _log.error("source path is empty")
@@ -86,10 +89,14 @@ def check_args(t_source, t_width, t_height, t_fps, t_save_to, t_zip, t_tolerance
         _log.error(f'background color tolerance is too small: {t_tolerance}')
         result = False
 
+    if t_colors <= 0:
+        _log.error(f'colors count is too small: {t_colors}')
+        result = False
+
     return result
 
 
-def main(t_source, t_width, t_height, t_fps, t_save_to, t_zip, t_tolerance):
+def main(t_source, t_width, t_height, t_fps, t_save_to, t_zip, t_tolerance, t_colors):
     start = time.time()
 
     _log.info('start creating bootimage')
@@ -124,7 +131,7 @@ def main(t_source, t_width, t_height, t_fps, t_save_to, t_zip, t_tolerance):
 
     _log.info(f'{len(images)} images are ready to process')
     for idx, img in enumerate(images):
-        transform_images(img, idx, t_width, t_height, dir_for_images, t_tolerance)
+        transform_images(img, idx, t_width, t_height, dir_for_images, t_tolerance, t_colors)
 
     with open(path_to_desc_file, "a") as f:
         print("p 1 0 part0", file=f)
@@ -237,7 +244,7 @@ def crop_image(image, tolerance, steps=100):
     }
 
 
-def transform_images(t_img_path, t_count, t_width, t_height, t_save_to_path, t_tolerance):
+def transform_images(t_img_path, t_count, t_width, t_height, t_save_to_path, t_tolerance, t_colors):
     _log.info(f'processing image {t_count}: {t_img_path}')
 
     original_img = Image.open(t_img_path)
@@ -253,6 +260,7 @@ def transform_images(t_img_path, t_count, t_width, t_height, t_save_to_path, t_t
     height_pos = int(t_height / 2 - original_img.height / 2)
     result_image.paste(original_img, (width_pos, height_pos))
 
+    # Crop image
     _log.debug(f'size before crop: {result_image.width}x{result_image.height}')
     crop_result = crop_image(result_image, t_tolerance)
     result_image = crop_result['image']
@@ -261,6 +269,9 @@ def transform_images(t_img_path, t_count, t_width, t_height, t_save_to_path, t_t
     fd = open(t_save_to_path + '/' + 'trim.txt', mode="a+")
     print(f'{result_image.width}x{result_image.height}'
           f'+{crop_result["pos_x"]}+{crop_result["pos_y"]}', file=fd)
+
+    # Convert image to adaptive palette colors
+    result_image = result_image.convert('P', palette=Image.ADAPTIVE, colors=t_colors)
 
     result_img_name = "{0:0{width}}.png".format(t_count, width=5)
     result_img_path = t_save_to_path + "/" + result_img_name
