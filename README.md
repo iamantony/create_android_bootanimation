@@ -6,15 +6,22 @@ Create Android bootanimation from .gif or .png images
 
 ## Usage
 
-    $python3 create_bootanimation.py SOURCE_FOLDER WIDTH HEIGHT FPS SAVE_TO_FOLDER -ZIP
+usage: `create_bootanimation.py [-h] [--zip] [--tolerance TOLERANCE] [--colors COLORS] source width height fps save_to`
 
-* SOURCE_FOLDER - absolute path to the folder with .gif image or .png
-images. If you specify .gif image, it will be unpacked to .png images.
-* WIDTH - width of the device screen
-* HEIGHT - height of the device screen
-* FPS - speed at which images will be displayed
-* SAVE_TO_FOLDER - folder where result files will be saved
-* -ZIP - (optional) create bootanimation.zip with result files
+Create Android bootanimation.zip from .gif or bunch of images
+
+positional arguments:
+  * `source` - Absolute path to the GIF file or folder with images. Expected image name format: xxxx-001.png Where: xxx - some image name; 001 - image number.
+  * `width` - Width of result images in pixels. You should use width of the device screen
+  * `height` - Height of result images in pixels. You should use height of the device screen
+  * `fps` - FPS (Frames Per Second) for animation
+  * `save_to` - path to the folder where result images should be saved
+
+optional arguments:
+  * `-h, --help` - show this help message and exit
+  * `--zip` - create bootanimation.zip with result images
+  * `--tolerance TOLERANCE` - set tolerance for detecting background color. For background detection (0, 0) pixel used
+  * `--colors COLORS` - set colors count for resulted images
 
 ## Examples
 
