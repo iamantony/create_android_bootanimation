@@ -50,12 +50,17 @@ def parse_arguments():
     parser.add_argument("--colors", type=int, default=256,
                         help="set colors count for resulted images")
 
+    parser.add_argument("--steps", type=int, default=100,
+                        help="set steps count for scanning image")
+
     args = parser.parse_args()
     return args.source, args.width, args.height, args.fps, \
-        args.save_to, args.zip, args.tolerance, args.colors
+        args.save_to, args.zip, args.tolerance, args.colors, \
+        args.steps
 
 
-def check_args(t_source, t_width, t_height, t_fps, t_save_to, t_zip, t_tolerance, t_colors):
+def check_args(t_source, t_width, t_height, t_fps, t_save_to,
+               t_zip, t_tolerance, t_colors, t_steps):
     result = True
     if len(t_source) <= 0:
         _log.error("source path is empty")
@@ -93,10 +98,14 @@ def check_args(t_source, t_width, t_height, t_fps, t_save_to, t_zip, t_tolerance
         _log.error(f'colors count is too small: {t_colors}')
         result = False
 
+    if t_steps <= 0:
+        _log.error(f'steps count is too small: {t_steps}')
+        result = False
+
     return result
 
 
-def main(t_source, t_width, t_height, t_fps, t_save_to, t_zip, t_tolerance, t_colors):
+def main(t_source, t_width, t_height, t_fps, t_save_to, t_zip, t_tolerance, t_colors, t_steps):
     start = time.time()
 
     _log.info('start creating bootimage')
@@ -131,7 +140,7 @@ def main(t_source, t_width, t_height, t_fps, t_save_to, t_zip, t_tolerance, t_co
 
     _log.info(f'{len(images)} images are ready to process')
     for idx, img in enumerate(images):
-        transform_images(img, idx, t_width, t_height, dir_for_images, t_tolerance, t_colors)
+        transform_images(img, idx, t_width, t_height, dir_for_images, t_tolerance, t_colors, t_steps)
 
     with open(path_to_desc_file, "a") as f:
         print("p 1 0 part0", file=f)
@@ -244,7 +253,8 @@ def crop_image(image, tolerance, steps=100):
     }
 
 
-def transform_images(t_img_path, t_count, t_width, t_height, t_save_to_path, t_tolerance, t_colors):
+def transform_images(t_img_path, t_count, t_width, t_height, t_save_to_path,
+                     t_tolerance, t_colors, t_steps):
     _log.info(f'processing image {t_count}: {t_img_path}')
 
     original_img = Image.open(t_img_path)
@@ -262,7 +272,7 @@ def transform_images(t_img_path, t_count, t_width, t_height, t_save_to_path, t_t
 
     # Crop image
     _log.debug(f'size before crop: {result_image.width}x{result_image.height}')
-    crop_result = crop_image(result_image, t_tolerance)
+    crop_result = crop_image(result_image, tolerance=t_tolerance, steps=t_steps)
     result_image = crop_result['image']
     _log.debug(f'size after crop: {result_image.width}x{result_image.height}')
 
