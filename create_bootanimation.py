@@ -140,7 +140,8 @@ def main(t_source, t_width, t_height, t_fps, t_save_to, t_zip, t_tolerance, t_co
 
     _log.info(f'{len(images)} images are ready to process')
     for idx, img in enumerate(images):
-        transform_images(img, idx, t_width, t_height, dir_for_images, t_tolerance, t_colors, t_steps)
+        transform_images(img, idx, t_width, t_height, dir_for_images,
+                         t_tolerance, t_colors, t_steps)
 
     with open(path_to_desc_file, "a") as f:
         print("p 1 0 part0", file=f)
@@ -262,7 +263,7 @@ def transform_images(t_img_path, t_count, t_width, t_height, t_save_to_path,
     # Scale image
     width_percent = (t_width / float(original_img.width))
     height_size = int((float(original_img.height) * float(width_percent)))
-    original_img = original_img.resize((t_width, height_size), Image.LANCZOS)
+    original_img = original_img.resize((t_width, height_size), Image.Resampling.LANCZOS)
 
     result_image = Image.new("RGB", (t_width, t_height), original_img.getpixel((0, 0)))
 
@@ -276,12 +277,12 @@ def transform_images(t_img_path, t_count, t_width, t_height, t_save_to_path,
     result_image = crop_result['image']
     _log.debug(f'size after crop: {result_image.width}x{result_image.height}')
 
-    fd = open(t_save_to_path + '/' + 'trim.txt', mode="a+")
-    print(f'{result_image.width}x{result_image.height}'
-          f'+{crop_result["pos_x"]}+{crop_result["pos_y"]}', file=fd)
+    with open(t_save_to_path + '/' + 'trim.txt', mode="a+") as trim_file:
+        trim_file.write(f'{result_image.width}x{result_image.height}'
+                        f'+{crop_result["pos_x"]}+{crop_result["pos_y"]}\n')
 
     # Convert image to adaptive palette colors
-    result_image = result_image.convert('P', palette=Image.ADAPTIVE, colors=t_colors)
+    result_image = result_image.convert('P', palette=Image.Palette.ADAPTIVE, colors=t_colors)
 
     result_img_name = "{0:0{width}}.png".format(t_count, width=5)
     result_img_path = t_save_to_path + "/" + result_img_name
