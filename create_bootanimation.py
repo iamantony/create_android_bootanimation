@@ -263,7 +263,7 @@ def transform_images(t_img_path, t_count, t_width, t_height, t_save_to_path,
     # Scale image
     width_percent = (t_width / float(original_img.width))
     height_size = int((float(original_img.height) * float(width_percent)))
-    original_img = original_img.resize((t_width, height_size), Image.Resampling.LANCZOS)
+    original_img = original_img.resize((t_width, height_size), Image.LANCZOS)
 
     result_image = Image.new("RGB", (t_width, t_height), original_img.getpixel((0, 0)))
 
@@ -282,7 +282,7 @@ def transform_images(t_img_path, t_count, t_width, t_height, t_save_to_path,
                         f'+{crop_result["pos_x"]}+{crop_result["pos_y"]}\n')
 
     # Convert image to adaptive palette colors
-    result_image = result_image.convert('P', palette=Image.Palette.ADAPTIVE, colors=t_colors)
+    result_image = result_image.convert('P', palette=Image.ADAPTIVE, colors=t_colors)
 
     result_img_name = "{0:0{width}}.png".format(t_count, width=5)
     result_img_path = t_save_to_path + "/" + result_img_name
